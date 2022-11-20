@@ -541,21 +541,11 @@ public partial class MySqlAdapter
         string tableName,
         string columnList, string parameterList, IEnumerable<PropertyInfo> keyProperties, object entityToInsert)
     {
-        var cmd = $"INSERT INTO {tableName} ({columnList}) VALUES ({parameterList})";
-        await connection.ExecuteAsync(cmd, entityToInsert, transaction, commandTimeout).ConfigureAwait(false);
-        var r = await connection
-            .QueryAsync<dynamic>("SELECT LAST_INSERT_ID() id", transaction: transaction, commandTimeout: commandTimeout)
-            .ConfigureAwait(false);
-
+        var cmd = $"INSERT INTO {tableName} ({columnList}) VALUES ({parameterList});SELECT LAST_INSERT_ID() id;";
+        var r= await connection.QueryAsync(cmd, entityToInsert, transaction, commandTimeout).ConfigureAwait(false);
         var id = r.First().id;
         if (id == null) return 0;
-        var pi = keyProperties as PropertyInfo[] ?? keyProperties.ToArray();
-        if (pi.Length == 0) return Convert.ToInt32(id);
-
-        var idp = pi[0];
-        idp.SetValue(entityToInsert, Convert.ChangeType(id, idp.PropertyType), null);
-
-        return Convert.ToInt32(id);
+        return (int)id;
     }
 }
 
